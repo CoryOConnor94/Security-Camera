@@ -1,10 +1,12 @@
 import cv2
 import numpy as np
 
-
+# def take_pictures():
+#     command = 'raspistill -w 1000 -h 720 -t 1000 -tl 1000 -o test%0d.jpg'
+#
 def create_mask(image):
     """
-    Create a binary mask based on user-selected regions.
+    Create a binary mask based on user-selected regions using polygons.
     Args:
     - image: Input image to create the mask.
     Returns:
@@ -12,15 +14,15 @@ def create_mask(image):
     """
     mask = np.zeros((image.shape[0], image.shape[1]), dtype="uint8")
 
-    # Allow user to select four regions
-    for _ in range(4):
-        bbox = cv2.selectROI(image, False)
-        # You can do something with the bounding box if needed
-        print("Selected ROI:", bbox)
+    # Allow user to draw polygons to define regions
+    polygons = []
+    while True:
+        roi = cv2.selectROI("Select ROI (Press Enter to finish)", image, showCrosshair=False)
+        if roi[2] == 0 or roi[3] == 0:
+            break  # Break if user presses Enter without selecting a region
+        polygons.append(np.array([[roi[0], roi[1]], [roi[0] + roi[2], roi[1]], [roi[0] + roi[2], roi[1] + roi[3]], [roi[0], roi[1] + roi[3]]], dtype=np.int32))
 
-    # You need to define points (pts) before using fillConvexPoly
-    pts = np.array([[0, 0], [0, image.shape[0]], [image.shape[1], image.shape[0]], [image.shape[1], 0]], dtype=np.int32)
-    cv2.fillConvexPoly(mask, pts, 255)
+    cv2.fillPoly(mask, polygons, 255)
 
     return mask
 
@@ -45,7 +47,7 @@ def main():
 
     # Check if the image is successfully loaded
     if original_image is not None:
-        # Create a mask based on user-selected regions
+        # Create a mask based on user-drawn polygons
         mask = create_mask(original_image)
 
         # Apply the mask to the original image
