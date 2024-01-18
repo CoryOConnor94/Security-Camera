@@ -1,11 +1,45 @@
 import cv2
 import numpy as np
+import imutils
 
+# def take_pictures():
+#     command = 'raspistill -w 1000 -h 720 -t 1000 -tl 1000 -o test%0d.jpg'
+#
 def create_mask(image):
-    # ... (unchanged)
+    """
+    Create a binary mask based on user-selected regions using polygons.
+    Args:
+    - image: Input image to create the mask.
+    Returns:
+    - mask: Binary mask with selected regions.
+    """
+    mask = np.zeros((image.shape[0], image.shape[1]), dtype="uint8")
+
+    # Allow user to draw polygons to define regions
+    polygons = []
+    while True:
+        roi = cv2.selectROI("Select ROI (Press Enter to finish)", image, showCrosshair=False)
+        if roi[2] == 0 or roi[3] == 0:
+            break  # Break if user presses Enter without selecting a region
+        polygons.append(np.array([[roi[0], roi[1]], [roi[0] + roi[2], roi[1]], [roi[0] + roi[2], roi[1] + roi[3]], [roi[0], roi[1] + roi[3]]], dtype=np.int32))
+
+    cv2.fillPoly(mask, polygons, 255)
+
+    return mask
+
 
 def apply_mask(image, mask):
-    # ... (unchanged)
+    """
+    Apply the provided mask to the input image.
+    Args:
+    - image: Input image.
+    - mask: Binary mask.
+    Returns:
+    - masked_image: Image with the applied mask.
+    """
+    masked_image = cv2.bitwise_and(image, image, mask=mask)
+    return masked_image
+
 
 def preprocess_image(image):
     # Resize the image to a width of 200
