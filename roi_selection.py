@@ -1,5 +1,7 @@
 import cv2
 import numpy as np
+import subprocess
+
 
 def create_mask(image):
     """
@@ -29,25 +31,27 @@ def create_mask(image):
 
     return mask, polygons
 
+
 def capture_single_image(command, image_path):
     """
-    Capture a single image using the raspistill command.
+    Capture a single image using the libcamera-jpeg command.
 
     Args:
-    - command: Raspistill command for image capture.
+    - command: libcamera-jpeg command for image capture.
     - image_path: File path to save the captured image.
     """
     subprocess.run(command, shell=True)
+
 
 def main():
     """
     Main function for ROI selection.
     """
-    # raspistill command to capture a single image
-    capture_single_command = 'raspistill -w 1000 -h 720 -o single_image.jpg'
+    # libcamera-jpeg command to capture a single image
+    capture_single_command = 'libcamera-jpeg -o single_image.jpg'
 
-    # raspistill command to capture images for the loop
-    capture_command = 'raspistill -w 1000 -h 720 -t 1000 -tl 1000 -o test%02d.jpg'
+    # libcamera-jpeg command to capture images for the loop
+    capture_command = 'libcamera-jpeg -t 1000 -o test%02d.jpg'
     num_images = 2
 
     single_image_path = 'single_image.jpg'
@@ -73,6 +77,7 @@ def main():
         np.save('roi_polygons.npy', polygons)  # Save the selected polygons to a file
     else:
         print("Error: Unable to load the single image.")
+
 
 if __name__ == "__main__":
     main()

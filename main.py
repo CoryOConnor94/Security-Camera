@@ -36,10 +36,10 @@ def preprocess_image(image):
 
 def capture_images(command, num_images):
     """
-    Capture images using the raspistill command.
+    Capture images using the libcamera-jpeg command.
 
     Args:
-    - command: Raspistill command for image capture.
+    - command: libcamera-jpeg command for image capture.
     - num_images: Number of images to capture.
     """
     for i in range(num_images):
@@ -51,7 +51,8 @@ def main():
     """
     Main function for capturing and processing images in a loop.
     """
-    capture_command = 'raspistill -w 1000 -h 720 -t 1000 -tl 1000 -o test%02d.jpg'
+    # libcamera-jpeg command to capture images for the loop
+    capture_command = 'libcamera-jpeg -t 1000 -o test%02d.jpg'
     num_images = 2
 
     # Load previously determined ROI polygons
