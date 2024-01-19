@@ -43,47 +43,51 @@ def capture_images(command, num_images):
     - num_images: Number of images to capture.
     """
     for i in range(num_images):
-        subprocess.run(command, shell=True)
+        subprocess.run(command % i, shell=True)  # Use % to insert the image index in the command
         time.sleep(1)
 
 
 def main():
     """
-    Main function for capturing and processing images in a loop.
+    Main function for capturing, processing, and displaying images.
     """
     # libcamera-jpeg command to capture images for the loop
-    capture_command = 'libcamera-jpeg -t 1000 -o test%02d.jpg'
+    capture_command = 'libcamera-jpeg -t 1000 -o test%d.jpg'
     num_images = 2
 
     # Load previously determined ROI polygons
     polygons = np.load('roi_polygons.npy', allow_pickle=True)
 
-    while True:
-        capture_images(capture_command, num_images)
+    processed_images = []
 
-        for i in range(1, num_images + 1):
-            image_path = f'test{i:02d}.jpg'
-            original_image = cv2.imread(image_path)
+    # Capture two images and process them
+    for i in range(1, num_images + 1):
+        image_path = f'test{i}.jpg'
+        original_image = cv2.imread(image_path)
 
-            if original_image is not None:
-                preprocessed_image = preprocess_image(original_image)
+        if original_image is not None:
+            preprocessed_image = preprocess_image(original_image)
 
-                mask = np.zeros((original_image.shape[0], original_image.shape[1]), dtype="uint8")
-                cv2.fillPoly(mask, polygons, 255)
+            mask = np.zeros((original_image.shape[0], original_image.shape[1]), dtype="uint8")
+            cv2.fillPoly(mask, polygons, 255)
 
-                masked_image = apply_mask(preprocessed_image, mask)
+            masked_image = apply_mask(preprocessed_image, mask)
 
-                cv2.imshow(f"Preprocessed Image {i}", preprocessed_image)
-                cv2.imshow(f"Masked Image {i}", masked_image)
+            processed_images.append(masked_image)
 
-            else:
-                print(f"Error: Unable to load the image {i}.")
+            # Display the original, preprocessed, and masked images
+            cv2.imshow(f"Original Image {i}", original_image)
+            cv2.imshow(f"Preprocessed Image {i}", preprocessed_image)
+            cv2.imshow(f"Masked Image {i}", masked_image)
 
-        key = cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        else:
+            print(f"Error: Unable to load the image {i}.")
 
-        if key == ord('q'):
-            break
+    key = cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+    if key == ord('q'):
+        print("Exiting program.")
 
 
 if __name__ == "__main__":

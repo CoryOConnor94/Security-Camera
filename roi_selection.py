@@ -50,10 +50,6 @@ def main():
     # libcamera-jpeg command to capture a single image
     capture_single_command = 'libcamera-jpeg -o single_image.jpg'
 
-    # libcamera-jpeg command to capture images for the loop
-    capture_command = 'libcamera-jpeg -t 1000 -o test%02d.jpg'
-    num_images = 2
-
     single_image_path = 'single_image.jpg'
 
     # Capture a single image for ROI selection
