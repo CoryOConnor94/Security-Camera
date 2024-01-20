@@ -47,47 +47,83 @@ def capture_images(command, num_images):
         time.sleep(1)
 
 
+def compare_images(image1, image2, threshold=20):
+    if image1.shape != image2.shape:
+        raise ValueError("Images must have the same size for comparison.")
+
+    diff = cv2.absdiff(image1, image2)
+    _, diff_mask = cv2.threshold(diff, threshold, 255, cv2.THRESH_BINARY)
+
+    motion_detected = np.any(diff_mask > 0)
+
+    if motion_detected:
+        print("Motion Detected!")
+
+    return motion_detected
+
+
+# def record_video(output_file, duration=15):
+#     capture = cv2.VideoCapture(0)
+#     fourcc = cv2.VideoWriter_fourcc(*'H264')
+#     fps = 30
+#     video_writer = cv2.VideoWriter(output_file, fourcc, fps, (640, 480))
+#
+#     start_time = time.time()
+#     while time.time() - start_time < duration:
+#         ret, frame = capture.read()
+#         if not ret:
+#             print("Error: Unable to capture video frames.")
+#             break
+#
+#         video_writer.write(frame)
+#
+#     capture.release()
+#     video_writer.release()
+#
+#     print(f"Video saved as {output_file}")
+#
+
 def main():
-    """
-    Main function for capturing, processing, and displaying images.
-    """
-    # libcamera-jpeg command to capture images for the loop
     capture_command = 'libcamera-jpeg -t 1000 -o test%d.jpg'
     num_images = 2
-
-    # Load previously determined ROI polygons
     polygons = np.load('roi_polygons.npy', allow_pickle=True)
 
-    processed_images = []
+    previous_processed_image = None
+    motion_detected = False
 
-    # Capture two images and process them
-    for i in range(1, num_images + 1):
-        image_path = f'test{i}.jpg'
-        original_image = cv2.imread(image_path)
+    while True:
+        capture_images(capture_command, num_images)
 
-        if original_image is not None:
-            preprocessed_image = preprocess_image(original_image)
+        for i in range(num_images):
+            image_path = f'test{i}.jpg'
+            original_image = cv2.imread(image_path)
 
-            mask = np.zeros((original_image.shape[0], original_image.shape[1]), dtype="uint8")
-            cv2.fillPoly(mask, polygons, 255)
+            if original_image is not None:
+                mask = np.zeros((original_image.shape[0], original_image.shape[1]), dtype="uint8")
+                cv2.fillPoly(mask, polygons, 255)
 
-            masked_image = apply_mask(preprocessed_image, mask)
+                masked_image = apply_mask(original_image, mask)
+                current_processed_image = preprocess_image(masked_image)
 
-            processed_images.append(masked_image)
+                cv2.imwrite(f"Original_Image_{i}.jpg", original_image)
+                cv2.imwrite(f"Preprocessed_Image_{i}.jpg", current_processed_image)
+                cv2.imwrite(f"Masked_Image_{i}.jpg", masked_image)
 
-            # Display the original, preprocessed, and masked images
-            cv2.imshow(f"Original Image {i}", original_image)
-            cv2.imshow(f"Preprocessed Image {i}", preprocessed_image)
-            cv2.imshow(f"Masked Image {i}", masked_image)
+                if previous_processed_image is not None:
+                    motion_detected = compare_images(previous_processed_image, current_processed_image)
+                    if motion_detected:
+                        print("Motion detected")
+                        # timestamp = time.strftime("%Y%m%d_%H%M%S")
+                        # video_output_file = f"Motion_Video_{timestamp}.mp4"
+                        # record_video(video_output_file)
+                        # time.sleep(2)  # Add a delay to avoid consecutive recordings for the same motion
 
-        else:
-            print(f"Error: Unable to load the image {i}.")
+                previous_processed_image = current_processed_image
 
-    key = cv2.waitKey(0)
-    cv2.destroyAllWindows()
+            else:
+                print(f"Error: Unable to load the image {i}.")
 
-    if key == ord('q'):
-        print("Exiting program.")
+        print("Images saved successfully. Waiting for the next capture.")
 
 
 if __name__ == "__main__":
