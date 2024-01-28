@@ -62,26 +62,32 @@ def compare_images(image1, image2, threshold=20):
     return motion_detected
 
 
-# def record_video(output_file, duration=15):
-#     capture = cv2.VideoCapture(0)
-#     fourcc = cv2.VideoWriter_fourcc(*'H264')
-#     fps = 30
-#     video_writer = cv2.VideoWriter(output_file, fourcc, fps, (640, 480))
-#
-#     start_time = time.time()
-#     while time.time() - start_time < duration:
-#         ret, frame = capture.read()
-#         if not ret:
-#             print("Error: Unable to capture video frames.")
-#             break
-#
-#         video_writer.write(frame)
-#
-#     capture.release()
-#     video_writer.release()
-#
-#     print(f"Video saved as {output_file}")
-#
+def record_video(output_file, duration=15, width=1280, height=720):
+    timestamp = time.strftime("%Y%m%d_%H%M%S")
+    output_path = f"{timestamp}.h264"
+
+    # Construct the libcamera-vid command
+    command = [
+        "libcamera-vid",
+        "-t", str(duration * 1000),  # Convert seconds to milliseconds
+        "--width", str(width),
+        "--height", str(height),
+        "-o", output_path
+    ]
+
+    try:
+        # Run the libcamera-vid command
+        subprocess.run(command, check=True)
+
+        # Optionally, convert the video to MP4
+        mp4_output_file = output_file.replace(".h264", ".mp4")
+        subprocess.run(["MP4Box", "-add", output_path, mp4_output_file])
+
+        print(f"Video saved as {mp4_output_file}")
+
+    except subprocess.CalledProcessError as e:
+        print(f"Error: {e}")
+
 
 def main():
     capture_command = 'libcamera-jpeg -t 1000 -o test%d.jpg'
@@ -115,8 +121,8 @@ def main():
                         print("Motion detected")
                         # timestamp = time.strftime("%Y%m%d_%H%M%S")
                         # video_output_file = f"Motion_Video_{timestamp}.mp4"
-                        # record_video(video_output_file)
-                        # time.sleep(2)  # Add a delay to avoid consecutive recordings for the same motion
+                        record_video("output", duration=15, width=1280, height=720)
+                        time.sleep(2)  # Add a delay to avoid consecutive recordings for the same motion
 
                 previous_processed_image = current_processed_image
 
