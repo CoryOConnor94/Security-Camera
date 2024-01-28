@@ -65,7 +65,7 @@ def compare_images(image1, image2, threshold=20):
 def record_video(output_file, duration=15, width=1280, height=720):
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     output_path = f"{timestamp}.h264"
-
+    print("")
     # Construct the libcamera-vid command
     command = [
         "libcamera-vid",
