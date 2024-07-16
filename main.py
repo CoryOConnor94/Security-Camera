@@ -48,56 +48,64 @@ def capture_images(command, num_images):
 
 
 def compare_images(image1, image2, threshold=20):
+    """
+    Compare two images pixel by pixel and return True if motion is detected.
+
+    Args:
+    - image1: First processed image.
+    - image2: Second processed image.
+    - threshold: Threshold for pixel difference.
+
+    Returns:
+    - motion_detected: Boolean indicating whether motion is detected.
+    """
+    # Ensure images are of the same size
     if image1.shape != image2.shape:
         raise ValueError("Images must have the same size for comparison.")
 
+    # Calculate absolute difference between images
     diff = cv2.absdiff(image1, image2)
+
+    # Create a binary mask where pixel differences exceed the threshold
     _, diff_mask = cv2.threshold(diff, threshold, 255, cv2.THRESH_BINARY)
 
+    # Check if there are non-zero pixels in the diff_mask
     motion_detected = np.any(diff_mask > 0)
-
-    if motion_detected:
-        print("Motion Detected!")
 
     return motion_detected
 
 
-def record_video(output_file, duration=15, width=1280, height=720):
-    timestamp = time.strftime("%Y%m%d_%H%M%S")
-    output_path = f"{timestamp}.h264"
-    print("")
-    # Construct the libcamera-vid command
-    command = [
-        "libcamera-vid",
-        "-t", str(duration * 1000),  # Convert seconds to milliseconds
-        "--width", str(width),
-        "--height", str(height),
-        "-o", output_path
-    ]
+def record_video(video_command):
+    subprocess.run(video_command, shell=True)
 
-    try:
-        # Run the libcamera-vid command
-        subprocess.run(command, check=True)
 
-        # Optionally, convert the video to MP4
-        mp4_output_file = output_file.replace(".h264", ".mp4")
-        subprocess.run(["MP4Box", "-add", output_path, mp4_output_file])
+def email_alert():
+    pass
 
-        print(f"Video saved as {mp4_output_file}")
 
-    except subprocess.CalledProcessError as e:
-        print(f"Error: {e}")
+def sms_alert():
+    pass
+
+
+def upload_to_cloud():
+    pass
 
 
 def main():
+    """
+    Main function for capturing, processing, and saving images in a continuous loop.
+    """
+    # libcamera-jpeg command to capture images for the loop
     capture_command = 'libcamera-jpeg -t 1000 -o test%d.jpg'
     num_images = 2
+
+    # Load previously determined ROI polygons
     polygons = np.load('roi_polygons.npy', allow_pickle=True)
 
-    previous_processed_image = None
-    motion_detected = False
+    previous_processed_image = None  # Store the previous processed image for comparison
 
     while True:
+        # Capture two images and process them
         capture_images(capture_command, num_images)
 
         for i in range(num_images):
@@ -111,25 +119,28 @@ def main():
                 masked_image = apply_mask(original_image, mask)
                 current_processed_image = preprocess_image(masked_image)
 
-                cv2.imwrite(f"Original_Image_{i}.jpg", original_image)
-                cv2.imwrite(f"Preprocessed_Image_{i}.jpg", current_processed_image)
-                cv2.imwrite(f"Masked_Image_{i}.jpg", masked_image)
-
+                # Compare current processed image with the previous one
                 if previous_processed_image is not None:
                     motion_detected = compare_images(previous_processed_image, current_processed_image)
                     if motion_detected:
-                        print("Motion detected")
-                        # timestamp = time.strftime("%Y%m%d_%H%M%S")
-                        # video_output_file = f"Motion_Video_{timestamp}.mp4"
-                        record_video("output", duration=15, width=1280, height=720)
-                        time.sleep(2)  # Add a delay to avoid consecutive recordings for the same motion
+                        print("Motion Detected!!")
+                        timestamp = time.strftime("%Y%m%d_%H%M%S")
+                        video_command = f'libcamera-vid -t 9000 --width 1280 --height 720 -o {timestamp}.h264'
+                        record_video(video_command)
+                        print("Finished Recording")
 
+                        time.sleep(2)  # Add a delay to avoid consecutive recordings for the same motion
+                        # Save the original, preprocessed, and masked images
+                        cv2.imwrite(f"Original_Image_{i}.jpg", original_image)
+                        cv2.imwrite(f"Preprocessed_Image_{i}.jpg", current_processed_image)
+                        cv2.imwrite(f"Masked_Image_{i}.jpg", masked_image)
+                        email_alert()
+                        sms_alert()
+                        upload_to_cloud()
                 previous_processed_image = current_processed_image
 
             else:
                 print(f"Error: Unable to load the image {i}.")
-
-        print("Images saved successfully. Waiting for the next capture.")
 
 
 if __name__ == "__main__":

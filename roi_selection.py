@@ -70,7 +70,7 @@ def main():
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 
-        np.save('roi_polygons.npy', polygons)  # Save the selected polygons to a file
+        np.save('roi_polygons.txt', polygons)  # Save the selected polygons to a file
     else:
         print("Error: Unable to load the single image.")
 
